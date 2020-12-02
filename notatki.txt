@@ -1,0 +1,19 @@
+DODATKOWE FUNKCJE:
+
+
+
+ set_proper_height : t
+    po zastosowaniu split na elemncie ktory dodajemy tworzyy mergem nowe drzewo
+    i ustawiamy wysokości
+ is_proper_avl : bool
+
+fix_tree : t
+    1.set_proper_height
+    2. while not is_proper_avl :
+        2.1 bal
+
+add - [x,y]
+    trzeba sprawdzić:
+    1) czy są jakie kolwiek przedziały z [x,y]
+    oraz czy jakieś ... x) i (y...
+

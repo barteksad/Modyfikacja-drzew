@@ -26,12 +26,13 @@
 
 *)
 
+
 type t
 
 val empty : t
 (** The empty set *)
 
-val is_empty : t -> bool
+(* val is_empty : t -> bool
 (** returns true if the set is empty. *)
 
 val add : int * int -> t -> t
@@ -64,7 +65,7 @@ val below : int -> t -> int
     or equal to [n]. If there are more than max_int such elements, 
     the result should be max_int. *)
 
-val split : int -> t -> t * bool * t
+val split : int -> t -> t * bool * t *)
 (** [split x s] returns a triple [(l, present, r)], where
     [l] is the set of elements of [s] that are strictly lesser than [x];
     [r] is the set of elements of [s] that are strictly greater than [x];

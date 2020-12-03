@@ -24,6 +24,8 @@
         but in a defunctorized style.
 *)
 
+type 'a set
+
 type 'a t
 
 val empty : 'a t
@@ -67,3 +69,5 @@ val split : 'a -> 'a t -> 'a t * bool * 'a t
     [r] is the set of elements of [s] that are strictly greater than [x];
     [present] is [false] if [s] contains no element equal to [x],
     or [true] if [s] contains an element equal to [x]. *)
+
+val is_valid : 'a t  -> bool

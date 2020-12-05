@@ -9,7 +9,7 @@
 (* possible *)
 
 let debug = false
-let info = true
+let info = false
 let verbose = false
 let n = 2*1000*1000
 

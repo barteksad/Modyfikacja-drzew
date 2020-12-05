@@ -13,6 +13,7 @@ let cmp_przedzialy (x_pocz,x_kon) (y_pocz,y_kon) =
     if x_pocz > y_kon  then  1 else
                                0;;
 
+
 (* Sprawdza jak wygląda przecięcie x y *)
 (* 0 - x cały w y *)
 (* -1 x wystaje z lewej strony  *)
@@ -27,6 +28,7 @@ let intersection (x_pocz,x_kon) (y_pocz,y_kon) =
       then -1
     else 1;;
 
+(* Type set- krotka int*int *)
 type set =
   | Empty
   | Node of set * (int*int) *  set * int 
@@ -40,10 +42,6 @@ type t =
 let height = function
   | Node(_, _, _, h) -> h
   | Empty -> 0
-
-let get_value = function
-  | Node(_,v,_,_)-> v
-  | Empty -> assert false;;
 
 let make l k r = Node (l, k, r, max (height l) (height r) + 1)
 
@@ -71,6 +69,7 @@ let bal l k r =
           | Empty -> assert false)
     | Empty -> assert false
   else Node (l, k, r, max hl hr + 1)
+
 
 let rec min_elt = function
   | Node (Empty, k, _, _) -> k
@@ -202,8 +201,7 @@ let split_pom x { cmp = cmp; set = set } =
                   else
                     napraw all_smaller_r 
                 else
-                  let (l1,elem) = find_min all_smaller_l in
-                napraw (join cmp l1 elem all_smaller_r)
+                  napraw( merge all_smaller_l all_smaller_r)
                 in
               let new_right =
               if all_greater_l = Empty then
@@ -211,8 +209,7 @@ let split_pom x { cmp = cmp; set = set } =
                   else
                     napraw all_greater_r 
                 else
-                  let (r1,elem) = find_min all_greater_l in
-                napraw (join cmp r1 elem all_smaller_r)
+                  napraw( merge all_greater_l all_greater_r)
                 in
               (new_left,false,new_right)
             else if how_intersect = 1
@@ -224,8 +221,7 @@ let split_pom x { cmp = cmp; set = set } =
                   else
                     napraw all_smaller_r 
                 else
-                  let (l1,elem) = find_max all_smaller_l in
-                napraw (join cmp l1 elem all_smaller_r)
+                  napraw ( merge all_smaller_l all_smaller_r)
                 in
                 (new_left,false,r)
             else 
@@ -236,8 +232,7 @@ let split_pom x { cmp = cmp; set = set } =
                   else
                     napraw all_greater_r 
                 else
-                  let (r1,elem) = find_min all_greater_l in
-                napraw (join cmp r1 elem all_greater_r)
+                  napraw( merge all_greater_l all_greater_r)
                 in
                 (l,false,new_right)
 
@@ -271,19 +266,19 @@ let add_one cmp x set =
     | Node(l, k, r, h) ->
     (
         let (pocz_x,kon_x) = x in
-        let pocz_x = 
+        let pocz_x_temp = 
           if pocz_x = min_int
             then min_int + 1
           else pocz_x
         in
-        let kon_x = 
+        let kon_x_temp = 
           if kon_x = max_int
             then max_int - 1
           else kon_x
         in
 
-        let dolny = mem_przedzial_zawierajacy (pocz_x-1,pocz_x-1) set in
-        let gorny = mem_przedzial_zawierajacy (kon_x+1,kon_x+1) set in
+        let dolny = mem_przedzial_zawierajacy (pocz_x_temp-1,pocz_x_temp-1) set in
+        let gorny = mem_przedzial_zawierajacy (kon_x_temp+1,kon_x_temp+1) set in
 
         let zmieniony_x = 
         match dolny,gorny with
@@ -348,11 +343,9 @@ let remove x { cmp = cmp; set = set } =
         if is_empty same_mniejsze then
         if is_empty same_wieksze then Empty
         else
-          let (new_r,v) = find_min same_wieksze.set in
-            join cmp same_mniejsze.set v new_r
+          merge same_mniejsze.set same_wieksze.set
         else
-          let (new_l,v) = find_max same_mniejsze.set in
-            join cmp new_l v same_wieksze.set
+          merge same_mniejsze.set same_wieksze.set
     )
     | Empty -> Empty
     in

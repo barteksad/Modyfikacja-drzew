@@ -266,19 +266,19 @@ let add_one cmp x set =
     | Node(l, k, r, h) ->
     (
         let (pocz_x,kon_x) = x in
-        let pocz_x = 
+        let pocz_x_temp = 
           if pocz_x = min_int
             then min_int + 1
           else pocz_x
         in
-        let kon_x = 
+        let kon_x_temp = 
           if kon_x = max_int
             then max_int - 1
           else kon_x
         in
 
-        let dolny = mem_przedzial_zawierajacy (pocz_x-1,pocz_x-1) set in
-        let gorny = mem_przedzial_zawierajacy (kon_x+1,kon_x+1) set in
+        let dolny = mem_przedzial_zawierajacy (pocz_x_temp-1,pocz_x_temp-1) set in
+        let gorny = mem_przedzial_zawierajacy (kon_x_temp+1,kon_x_temp+1) set in
 
         let zmieniony_x = 
         match dolny,gorny with

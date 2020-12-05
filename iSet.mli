@@ -60,11 +60,11 @@ val elements : t -> (int * int) list
 (** Return the list of all continuous intervals of the given set.
     The returned list is sorted in increasing order. *)
 
-(* 
+
 val below : int -> t -> int
 (** [below n s] returns the number of elements of [s] that are lesser
     or equal to [n]. If there are more than max_int such elements, 
-    the result should be max_int. *) *)
+    the result should be max_int. *)
 
 val split : int -> t -> t * bool * t 
 (** [split x s] returns a triple [(l, present, r)], where

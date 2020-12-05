@@ -111,11 +111,12 @@ let mem_przedzial_zawierajacy x set =
 
 (* funkcja sprawdzająca, czy set jest poprawnym drzewem AVL, w tym przypadku lheight +-2 = rheight *)
 let is_valid x = 
-  if x = Empty then true else
-  let (Node(l, k, r, h)) = x in
-  let left_height = height l in
-  let right_height = height r in
-  abs (left_height - right_height) < 3;;
+  match x with
+  | Node(l, k, r, h) ->
+    let left_height = height l in
+    let right_height = height r in
+    abs (left_height - right_height) < 3
+  | Empty -> true;;
 
 
 (* funkcja pomocnicza do dodawania i usuwania elementów *)
@@ -159,7 +160,7 @@ let find_min set =
   let rec loop = function
     | Empty-> assert false
     | Node (l, v, r, h) ->
-      if r != Empty then
+      if l != Empty then
         let (new_left,minimum) = loop l in
         (Node (new_left, v, r,h),minimum)
       else
@@ -202,7 +203,7 @@ let split_pom x { cmp = cmp; set = set } =
                     napraw all_smaller_r 
                 else
                   let (l1,elem) = find_min all_smaller_l in
-                napraw (join cmp_przedzialy l1 elem all_smaller_r)
+                napraw (join cmp l1 elem all_smaller_r)
                 in
               let new_right =
               if all_greater_l = Empty then
@@ -211,10 +212,10 @@ let split_pom x { cmp = cmp; set = set } =
                     napraw all_greater_r 
                 else
                   let (r1,elem) = find_min all_greater_l in
-                napraw (join cmp_przedzialy r1 elem all_smaller_r)
+                napraw (join cmp r1 elem all_smaller_r)
                 in
               (new_left,false,new_right)
-            else if how_intersect = -1 
+            else if how_intersect = 1
               then 
               let (all_smaller_l,_,all_smaller_r) = loop x l in
               let new_left =
@@ -224,7 +225,7 @@ let split_pom x { cmp = cmp; set = set } =
                     napraw all_smaller_r 
                 else
                   let (l1,elem) = find_max all_smaller_l in
-                napraw (join cmp_przedzialy l1 elem all_smaller_r)
+                napraw (join cmp l1 elem all_smaller_r)
                 in
                 (new_left,false,r)
             else 
@@ -236,7 +237,7 @@ let split_pom x { cmp = cmp; set = set } =
                     napraw all_greater_r 
                 else
                   let (r1,elem) = find_min all_greater_l in
-                napraw (join cmp_przedzialy r1 elem all_greater_r)
+                napraw (join cmp r1 elem all_greater_r)
                 in
                 (l,false,new_right)
 
@@ -248,7 +249,7 @@ let split_pom x { cmp = cmp; set = set } =
   let setl, pres, setr = loop x set in
   { cmp = cmp; set = setl }, pres, { cmp = cmp; set = setr }
 
-let split x { cmp = cmp; set = set } =
+let split1 x { cmp = cmp; set = set } =
   let x = (x,x) in
   let rec loop x = function
       Empty ->
@@ -270,6 +271,17 @@ let add_one cmp x set =
     | Node(l, k, r, h) ->
     (
         let (pocz_x,kon_x) = x in
+        let pocz_x = 
+          if pocz_x = min_int
+            then min_int + 1
+          else pocz_x
+        in
+        let kon_x = 
+          if kon_x = max_int
+            then max_int - 1
+          else kon_x
+        in
+
         let dolny = mem_przedzial_zawierajacy (pocz_x-1,pocz_x-1) set in
         let gorny = mem_przedzial_zawierajacy (kon_x+1,kon_x+1) set in
 
@@ -295,18 +307,18 @@ let add x { cmp = cmp; set = set } =
   { cmp = cmp; set = add_one cmp x set }
 
 
-let split_2 x { cmp = cmp; set = set } = 
-  let l, pres, r = split x { cmp = cmp; set = set } in
+let split x { cmp = cmp; set = set } = 
+  let l, pres, r = split1 x { cmp = cmp; set = set } in
   if pres = false
     then l, pres, r
   else
     let (dolny_pocz,dolny_kon) = mem_przedzial_zawierajacy (x-1,x-1) set in
     let (gorny_pocz,gorny_kon) = mem_przedzial_zawierajacy (x+1,x+1) set in
     let l = 
-      if dolny_pocz = 1 && dolny_pocz = -1
+      if dolny_pocz = 1 && dolny_kon = -1
         then l
       else
-      add (dolny_pocz,x-1) l in
+        add (dolny_pocz,x-1) l in
     let r = 
       if gorny_pocz = 1 && gorny_kon = -1
         then r
@@ -322,14 +334,14 @@ let remove x { cmp = cmp; set = set } =
         let (pocz_x,kon_x) = x in
         let (dolny_pocz,temp1) = mem_przedzial_zawierajacy (pocz_x,pocz_x) set in
         let (temp2,gorny_kon) = mem_przedzial_zawierajacy (kon_x,kon_x) set in
-        let same_mniejsze,_, same_wieksze = split_pom (pocz_x,kon_x) { cmp = cmp_przedzialy; set = set } in
+        let same_mniejsze,_, same_wieksze = split_pom (pocz_x,kon_x) { cmp = cmp; set = set } in
         let same_mniejsze =
-        if pocz_x - 1 >= dolny_pocz && (dolny_pocz!= 1 && temp1 != -1) then
+        if pocz_x - 1 >= dolny_pocz && (dolny_pocz!= 1 || temp1 != -1) then
             add (dolny_pocz,pocz_x-1) same_mniejsze
           else
           same_mniejsze in
         let same_wieksze = 
-          if kon_x + 1 <= gorny_kon &&  (temp2 != 1 && gorny_kon != -1) then
+          if kon_x + 1 <= gorny_kon &&  (temp2 != 1 || gorny_kon != -1) then
             add (kon_x+1,gorny_kon) same_wieksze
           else
           same_wieksze in
@@ -337,10 +349,10 @@ let remove x { cmp = cmp; set = set } =
         if is_empty same_wieksze then Empty
         else
           let (new_r,v) = find_min same_wieksze.set in
-            join cmp_przedzialy same_mniejsze.set v new_r
+            join cmp same_mniejsze.set v new_r
         else
           let (new_l,v) = find_max same_mniejsze.set in
-            join cmp_przedzialy new_l v same_wieksze.set
+            join cmp new_l v same_wieksze.set
     )
     | Empty -> Empty
     in
@@ -357,8 +369,6 @@ let mem x { cmp = cmp; set = set } =
   loop set
 
 (* zwraca przedzial [a,b], jeżeli x \in [a,b], lub  Brak  *)
-
-let exists = mem
 
 let iter f { set = set } =
   let rec loop = function
@@ -378,4 +388,45 @@ let elements { set = set } =
       Empty -> acc
     | Node(l, k, r, _) -> loop (k :: loop acc r) l in
   loop [] set
+
+let rec count_nodes = function
+  | Empty -> 0
+  | Node(l, k, r, _) ->
+    snd k - fst k + 1 + count_nodes l + count_nodes r;;
+
+let below x { cmp = cmp; set = set } =
+  let x = (x,x) in
+  let rec loop = function
+  | Empty -> 0
+  | Node(l, k, r, _) ->
+    let c = cmp x k in
+      if c = -1
+        then loop l
+      else if c = 0
+        then
+          let wyn_temp = count_nodes l 
+          in
+          if wyn_temp < 0 
+            then wyn_temp
+          else
+          let temp = fst x - fst k
+          in
+            if temp < 0 
+              then max_int
+            else
+              temp + 1 + wyn_temp
+      else
+      let temp = snd k - fst k
+          in
+            if temp < 0 
+              then max_int
+            else
+              temp + 1 + count_nodes l + loop r
+  in
+  let wyn = loop set
+  in
+  if wyn < 0 
+    then max_int
+  else
+    wyn;;
 

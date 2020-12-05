@@ -34,8 +34,8 @@ check 2 (mem 29 a) true;;
 check 3 (mem 21 a) false;;
 check 4 (mem 38 a) false;;
 check 5 (mem 37 a) true;;
-(* check 6 (below 8 a = below 9 a) true;; *)
-(* check 7 (below 29 a) 17;; *)
+check 6 (below 8 a = below 9 a) true;;
+check 7 (below 29 a) 17;;
 check 8 (liczba a) 8;;
 
 let a = add (37, 42) a;;
@@ -49,7 +49,7 @@ check 14 (mem 41 a) true;;
 check 15 (mem 42 a) true;;
 check 16 (mem 44 a) false;;
 (* check 17 (below 38 a = below 39 a) false;; *)
-open ISet;;
+
 let tmp = remove (8, 22) a;;
 let tmp = add (8, 22) tmp;;
 
@@ -111,14 +111,14 @@ let d = add (12, 14) d;;
 let d = add (32, 35) d;;
 let d = add (38, 40) d;;
 
-(* check 41 (below 36 d = below 37 d) true;; *)
+check 41 (below 36 d = below 37 d) true;;
 
 let d = add (36, 37) d;;
 
-(* check 42 (below 36 d = below 37 d) false;; *)
+check 42 (below 36 d = below 37 d) false;;
 
 let d = remove (37, 37) d;;
-(* check 43 (below 36 d = below 37 d) true;; *)
+check 43 (below 36 d = below 37 d) true;;
 
 let d = remove (20, 21) d;;
 

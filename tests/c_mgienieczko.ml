@@ -1,7 +1,7 @@
 (* Autor: Mateusz Gienieczko *)
 open ISet;;
 
-let info = false;;
+let info = true;;
 
 let simple l =
   let (e, res) =

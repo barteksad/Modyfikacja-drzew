@@ -157,30 +157,25 @@ let rec join cmp l v r =
 
 let find_min set = 
   let rec loop = function
-    | Empty-> (Empty,(1,-1))
+    | Empty-> assert false
     | Node (l, v, r, h) ->
-      let (new_left,minimum) = loop l in
-      if new_left = Empty 
-        then if r = Empty
-          then (Empty,v)
-        else
-        (r,v)
+      if r != Empty then
+        let (new_left,minimum) = loop l in
+        (Node (new_left, v, r,h),minimum)
       else
-      (Node (new_left, v, r,h),minimum)
+      (r,v) 
   in loop set;;
+
 
 let find_max set = 
   let rec loop = function
-    | Empty-> (Empty,(1,-1))
+    | Empty-> assert false
     | Node (l, v, r, h) ->
-      let (new_right,maximum) = loop r in
-      if new_right = Empty 
-        then if l = Empty
-          then (Empty,v)
-        else
-        (l,v)
+      if r != Empty then
+        let (new_right,maximum) = loop r in
+        (Node (l, v, new_right, h),maximum)
       else
-      (Node (l, v, new_right, h),maximum)
+        (l,v)
   in loop set;;
 
 
@@ -299,9 +294,26 @@ let add_one cmp x set =
 let add x { cmp = cmp; set = set } =
   { cmp = cmp; set = add_one cmp x set }
 
-let dd x = 
-  print_string("dsdsd")
-  true
+
+let split_2 x { cmp = cmp; set = set } = 
+  let l, pres, r = split x { cmp = cmp; set = set } in
+  if pres = false
+    then l, pres, r
+  else
+    let (dolny_pocz,dolny_kon) = mem_przedzial_zawierajacy (x-1,x-1) set in
+    let (gorny_pocz,gorny_kon) = mem_przedzial_zawierajacy (x+1,x+1) set in
+    let l = 
+      if dolny_pocz = 1 && dolny_pocz = -1
+        then l
+      else
+      add (dolny_pocz,x-1) l in
+    let r = 
+      if gorny_pocz = 1 && gorny_kon = -1
+        then r
+      else
+      add (x+1,gorny_kon) r in
+    l, pres, r;;
+
 
 let remove x { cmp = cmp; set = set } =
     let wyn = 
@@ -312,12 +324,12 @@ let remove x { cmp = cmp; set = set } =
         let (temp2,gorny_kon) = mem_przedzial_zawierajacy (kon_x,kon_x) set in
         let same_mniejsze,_, same_wieksze = split_pom (pocz_x,kon_x) { cmp = cmp_przedzialy; set = set } in
         let same_mniejsze =
-        if pocz_x - 1 >= dolny_pocz && (dolny_pocz,temp1) != (1,-1) && (dd 3) then
+        if pocz_x - 1 >= dolny_pocz && (dolny_pocz!= 1 && temp1 != -1) then
             add (dolny_pocz,pocz_x-1) same_mniejsze
           else
           same_mniejsze in
         let same_wieksze = 
-          if kon_x + 1 <= gorny_kon && (temp2,gorny_kon) != (1,-1)then
+          if kon_x + 1 <= gorny_kon &&  (temp2 != 1 && gorny_kon != -1) then
             add (kon_x+1,gorny_kon) same_wieksze
           else
           same_wieksze in

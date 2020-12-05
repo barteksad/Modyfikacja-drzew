@@ -70,4 +70,6 @@ val split : 'a -> 'a t -> 'a t * bool * 'a t
     [present] is [false] if [s] contains no element equal to [x],
     or [true] if [s] contains an element equal to [x]. *)
 
+
+(* MOJE *)
 val is_valid : 'a t  -> bool

@@ -40,21 +40,21 @@ val add : int * int -> t -> t
     plus all elements of the interval [[x,y]] including [x] and [y].
     Assumes [x <= y]. *)
 
-(* val remove : int * int -> t -> t *)
+val remove : int * int -> t -> t
 (** [remove (x, y) s] returns a set containing the same elements as [s],
     except for all those which are included between [x] and [y].
     Assumes [x <= y]. *)
 
 val mem : int -> t -> bool
-(** [mem x s] returns [true] if [s] contains [x], and [false] otherwise. *)
+(* [mem x s] returns [true] if [s] contains [x], and [false] otherwise. *)
 
-(* val iter : (int * int -> unit) -> t -> unit
+val iter : (int * int -> unit) -> t -> unit
 (** [iter f s] applies [f] to all continuous intervals in the set [s].
     The intervals are passed to [f] in increasing order. *)
 
 val fold : (int * int -> 'a -> 'a) -> t -> 'a -> 'a
 (** [fold f s a] computes [(f xN ... (f x2 (f x1 a))...)], where x1
-    ... xN are all continuous intervals of s, in increasing order. *) *)
+    ... xN are all continuous intervals of s, in increasing order. *) 
 
 val elements : t -> (int * int) list
 (** Return the list of all continuous intervals of the given set.

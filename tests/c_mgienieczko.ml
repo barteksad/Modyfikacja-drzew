@@ -1,7 +1,7 @@
 (* Autor: Mateusz Gienieczko *)
 open ISet;;
 
-let info = true;;
+let info = false;;
 
 let simple l =
   let (e, res) =
@@ -103,23 +103,23 @@ let l3 = snd (List.fold_left (fun (i, l) _ -> (i + 3, (i, i + 1)::l)) (0, [])
 let l4 = snd (List.fold_left (fun (i, l) _ -> (i - 3, (i, i + 1)::l)) (0, [])
 	(aux [] 100000));;
 
-if info then Pervasives.print_endline "Starting performence";;
+if info then print_endline "Starting performence";;
 let a = add_list empty l1;;
-if info then Pervasives.print_endline "Added l1";;
+if info then print_endline "Added l1";;
 let a = add_list a l1;;
-if info then Pervasives.print_endline "Added l1";;
+if info then print_endline "Added l1";;
 let a = add_list a l2;;
-if info then Pervasives.print_endline "Added l2";;
+if info then print_endline "Added l2";;
 let a = add_list a l2;;
-if info then Pervasives.print_endline "Added l2";;
+if info then print_endline "Added l2";;
 let a = add_list a l3;;
-if info then Pervasives.print_endline "Added l3";;
+if info then print_endline "Added l3";;
 let a = add_list a l3;;
-if info then Pervasives.print_endline "Added l3";;
+if info then print_endline "Added l3";;
 let a = add_list a l4;;
-if info then Pervasives.print_endline "Added l4";;
+if info then print_endline "Added l4";;
 let a = add_list a l4;;
-if info then Pervasives.print_endline "Added l4";;
+if info then print_endline "Added l4";;
 
 let test s (a, b) step i =
   let rec aux s (x, y) i =
@@ -129,33 +129,33 @@ let test s (a, b) step i =
   aux s (a, b) i;;
     
 test a (min_int + 1, min_int + 10000) 2 100000;;
-if info then Pervasives.print_endline "Test 1";;
+if info then print_endline "Test 1";;
 test a (max_int / 2, max_int / 2 + 10000) 2 100000;;
-if info then Pervasives.print_endline "Test 2";;
+if info then print_endline "Test 2";;
 test a (min_int + 10000, max_int / 2) 2 100000;;
-if info then Pervasives.print_endline "Test 3";;
+if info then print_endline "Test 3";;
 test a (max_int / 2, max_int - 1000000) 2 100000;;
-if info then Pervasives.print_endline "Test 4";;
+if info then print_endline "Test 4";;
 test a (max_int - 10000000, max_int - 1000000) 2 100000;;
-if info then Pervasives.print_endline "Test 5";;
+if info then print_endline "Test 5";;
 
 remove (min_int, max_int) a;;
-if info then Pervasives.print_endline "Starting add";;
+if info then print_endline "Starting add";;
 for i = 0 to 10000 do
   (fun _ -> ()) (add (min_int + i, max_int - i) a);
 done;;
 
-if info then Pervasives.print_endline "Starting remove";;
+if info then print_endline "Starting remove";;
 for i = 0 to 10000 do
   (fun _ -> ()) (remove (min_int + i, max_int - i) a)
 done;;
 
-if info then Pervasives.print_endline "Starting split";;
+if info then print_endline "Starting split";;
 for i = 0 to 10000 do
   (fun _ -> ()) (split (min_int + i) a)
 done;;
 
-if info then Pervasives.print_endline "Starting below";;
+if info then print_endline "Starting below";;
 for i = 0 to 10000 do
   (fun _ -> ()) (below (min_int + i) a)
 done;;

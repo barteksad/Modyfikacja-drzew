@@ -128,7 +128,7 @@ let rec napraw x =
         then x 
     else
     match x with
-    | Node(l,k,r,h) -> napraw (bal l k r)
+    | Node(l,k,r,h) -> napraw (comparebal l k r)
     | Empty -> Empty;;
 
 

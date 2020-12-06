@@ -179,79 +179,6 @@ let rec join cmp l v r =
       if rh > lh + 2 then bal (join cmp l v rl) rv rr else
       make l v r
 
-(* TYM SPLITEM MOŻNA ZASTĄPIĆ SPLIT1 w ADD i REMOVE *)
-(* KOSZT ZAMORTYZOWANY TEN SAM, TESTY DZIAŁAJĄ 30% SZYBCIEJ *)
-(* PO PROSTU OGRANICZA TROCHĘ WYWOŁANIA REKURENCYJNE ZWYKŁEGO SPLIT *)
-(* ALE JEST DUŻO BARDZIEJ SKOMPLIKOWANA WIĘĆ ZOSTAWIAM ZWYKŁY SPLIT1 *)
-(* ŻEBY KOŻYSTAĆ Z GOTOWYCH ROZWIĄZAŃ *)
-
-(* ZMIENIONY SPLIT, funkcja pomocnicza*)
-(* Bierze przedział [a,b] i set, zwraca lewe poddrzewo gdzie wszystkie elementy <a i prawe, gdzie wysztkie elementy > b*)
-(* let split_pom x { cmp = cmp; set = set } =
-  let rec loop x = function
-      Empty ->
-        (Empty, false, Empty)
-    | Node (l, v, r, _) ->
-        let c = cmp x v in
-        if c = 0
-          then
-            let how_intersect = intersection v x in
-            if how_intersect = 2
-              then (l, true, r)
-            else if how_intersect =  0 
-              then
-              let (all_smaller_l,_,all_smaller_r) = loop x l in
-              let (all_greater_l,_,all_greater_r) = loop x r in
-              let new_left =
-              if all_smaller_l = Empty then
-              if all_smaller_r = Empty then Empty
-                  else
-                    napraw all_smaller_r 
-                else
-                  napraw( merge all_smaller_l all_smaller_r)
-                in
-              let new_right =
-              if all_greater_l = Empty then
-              if all_greater_r = Empty then Empty
-                  else
-                    napraw all_greater_r 
-                else
-                  napraw( merge all_greater_l all_greater_r)
-                in
-              (new_left,false,new_right)
-            else if how_intersect = 1
-              then 
-              let (all_smaller_l,_,all_smaller_r) = loop x l in
-              let new_left =
-              if all_smaller_l = Empty then
-              if all_smaller_r = Empty then Empty
-                  else
-                    napraw all_smaller_r 
-                else
-                  napraw ( merge all_smaller_l all_smaller_r)
-                in
-                (new_left,false,r)
-            else 
-              let (all_greater_l,_,all_greater_r) = loop x r in
-              let new_right =
-              if all_greater_l = Empty then
-              if all_greater_r = Empty then Empty
-                  else
-                    napraw all_greater_r 
-                else
-                  napraw( merge all_greater_l all_greater_r)
-                in
-                (l,false,new_right)
-
-        else if c < 0 then
-          let (ll, pres, rl) = loop x l in (ll, pres, join cmp rl v r)
-        else
-          let (lr, pres, rr) = loop x r in (join cmp l v lr, pres, rr)
-  in
-  let setl, pres, setr = loop x set in
-  { cmp = cmp; set = setl }, pres, { cmp = cmp; set = setr } *)
-
-
 
 (* oryginalny split, tu używany jako funkcja pomocnicza do mojego split *)
 let split1 x { cmp = cmp; set = set } =
@@ -271,6 +198,9 @@ let split1 x { cmp = cmp; set = set } =
   { cmp = cmp; set = setl }, pres, { cmp = cmp; set = setr }
 
 
+(* Split zwracający tylko poddrzewo zlożone z mniejszych wartości niż x, wykonuje przez to mniej operacji *)
+(* bo nie łączy większych poddrzew *)
+(* Złożoność: stała razy log n *)
 let split_just_lower x { cmp = cmp; set = set } =
   let x = (x,x) in
   let rec loop x = function
@@ -287,6 +217,9 @@ let split_just_lower x { cmp = cmp; set = set } =
   let setl, _, _ = loop x set in
   { cmp = cmp; set = setl }
 
+(* Split zwracający tylko poddrzewo zlożone z większych wartości niż x, wykonuje przez to mniej operacji *)
+(* bo nie łączy mniejszych poddrzew *)
+(* Złożoność: stała razy log n *)
 let split_jush_higher x { cmp = cmp; set = set } =
   let x = (x,x) in
   let rec loop x = function
@@ -302,10 +235,12 @@ let split_jush_higher x { cmp = cmp; set = set } =
   in
   let _, _, setr = loop x set in
   { cmp = cmp; set = setr }
+
+
 (* DODAWANIE *)
 (* Dla add [a,b] do set wywołujemy split1 od a i split b od a żeby dostać same większe i same mniejsze*)
 (* łączymy je wstawiając [a,b] w środek i naprawiając drzewo funkcją napraw *)
-(* ZŁOŻONOŚĆ - 2x split w czasie stała razy log n + log n na naprawe*)
+(* ZŁOŻONOŚĆ -  split w czasie stała razy log n + log n na naprawe*)
 let add_one cmp x set = 
     match set with
     | Node(l, k, r, h) ->
@@ -332,19 +267,10 @@ let add_one cmp x set =
         | (1,-1), (c,d)  -> (pocz_x,d)
         | (a,b) , (c,d)  -> (a,d)
         in
-        
-        (* TO JEST SZYBSZE ALE BARDZIEJ SKOMPLIKOWANE *)
-
-        (* let same_mniejsze,_, same_wieksze = split_pom (pocz_x-1,kon_x+1) { cmp = cmp_przedzialy; set = set } in *)
-
-        (* ------------- *)
-
-        (* TO JEST WOLNIEJSZE ALE MNIEJ SKOMPLIKOWANE *)
-
+       
         let same_mniejsze= split_just_lower (pocz_x_temp-1) { cmp = cmp_przedzialy; set = set } in
         let same_wieksze  = split_jush_higher (kon_x_temp+1) { cmp = cmp_przedzialy; set = set }
         in
-        (* ------------- *)
 
 
         let nowe = join cmp_przedzialy same_mniejsze.set zmieniony_x same_wieksze.set
@@ -358,6 +284,8 @@ let add x { cmp = cmp; set = set } =
   { cmp = cmp; set = add_one cmp x set }
 
 
+(* oryginalny split dodający prawe i lewe dopełnienie [a,x-1] i [x+1,b] ,jeśli x \in [a,b] i a<=x && b>=x *)
+(* ZłOŻONOŚĆ: stała razy log n na split i log n na add_one_special *)
 let split x { cmp = cmp; set = set } = 
   let l, pres, r = split1 x { cmp = cmp; set = set } in
   if pres = false
@@ -367,17 +295,19 @@ let split x { cmp = cmp; set = set } =
     let (gorny_pocz,gorny_kon) = mem_przedzial_zawierajacy (x+1,x+1) set in
     let l = 
       if dolny_pocz = 1 && dolny_kon = -1
-        then l
+        then l.set
       else
-        add (dolny_pocz,x-1) l in
+        add_one_SPECIAL cmp (dolny_pocz,x-1) l.set in
     let r = 
       if gorny_pocz = 1 && gorny_kon = -1
-        then r
+        then r.set
       else
-      add (x+1,gorny_kon) r in
-    l, pres, r;;
+      add_one_SPECIAL cmp (x+1,gorny_kon) r.set in
+    { cmp = cmp; set = l } , pres, { cmp = cmp; set = r } ;;
 
 
+(* Wywołuje split i ewentualnie dodaje depełnienia przedziałów w których był x ale nie usuwaliśmy całych *)
+(* ZłOŻONOŚĆ: stała razy log n na split i log n na add_one_special *)
 let remove x { cmp = cmp; set = set } =
     let wyn = 
     match set with
@@ -386,36 +316,27 @@ let remove x { cmp = cmp; set = set } =
         let (dolny_pocz,temp1) = mem_przedzial_zawierajacy (pocz_x,pocz_x) set in
         let (temp2,gorny_kon) = mem_przedzial_zawierajacy (kon_x,kon_x) set in
 
-        (* TO JEST SZYBSZE ALE BARDZIEJ SKOMPLIKOWANE *)
-
-        (* let same_mniejsze,_, same_wieksze = split_pom (pocz_x-1,kon_x+1) { cmp = cmp_przedzialy; set = set } in *)
-
-        (* ------------- *)
-
-        (* TO JEST WOLNIEJSZE ALE MNIEJ SKOMPLIKOWANE *)
-
         let same_mniejsze= split_just_lower (pocz_x) { cmp = cmp_przedzialy; set = set } in
         let same_wieksze  = split_jush_higher (kon_x) { cmp = cmp_przedzialy; set = set }
         in
-        (* ------------- *)
 
 
         let same_mniejsze =
         if pocz_x - 1 >= dolny_pocz && (dolny_pocz!= 1 || temp1 != -1) then
-            add (dolny_pocz,pocz_x-1) same_mniejsze
+            add_one_SPECIAL cmp (dolny_pocz,pocz_x-1) same_mniejsze.set
           else
-          same_mniejsze in
+          same_mniejsze.set in
         let same_wieksze = 
           if kon_x + 1 <= gorny_kon &&  (temp2 != 1 || gorny_kon != -1) then
-            add (kon_x+1,gorny_kon) same_wieksze
+            add_one_SPECIAL cmp (kon_x+1,gorny_kon) same_wieksze.set
           else
-          same_wieksze in
-        if is_empty same_mniejsze then
-        if is_empty same_wieksze then Empty
+          same_wieksze.set in
+        if same_mniejsze =Empty then
+        if  same_wieksze =Empty then Empty
         else
-          merge same_mniejsze.set same_wieksze.set
+          merge same_mniejsze same_wieksze
         else
-          merge same_mniejsze.set same_wieksze.set
+          merge same_mniejsze same_wieksze
     )
     | Empty -> Empty
     in
@@ -433,12 +354,14 @@ let mem x { cmp = cmp; set = set } =
 
 (* zwraca przedzial [a,b], jeżeli x \in [a,b], lub  Brak  *)
 
+(* nie zmienione *)
 let iter f { set = set } =
   let rec loop = function
     | Empty -> ()
     | Node (l, k, r, _) -> loop l; f k; loop r in
   loop set
 
+(* nie zmienione *)
 let fold f { cmp = cmp; set = set } acc =
   let rec loop acc = function
     | Empty -> acc
@@ -446,12 +369,14 @@ let fold f { cmp = cmp; set = set } acc =
           loop (f k (loop acc l)) r in
   loop acc set
 
+(* nie zmienione *)
 let elements { set = set } = 
   let rec loop acc = function
       Empty -> acc
     | Node(l, k, r, _) -> loop (k :: loop acc r) l in
   loop [] set
 
+(* Fu *)
 let rec count_nodes = function
   | Empty -> 0
   | Node(l, k, r, _) ->

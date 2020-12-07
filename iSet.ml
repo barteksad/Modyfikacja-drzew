@@ -12,12 +12,6 @@ let cmp_przedzialy (x_pocz,x_kon) (y_pocz,y_kon) =
     if x_kon  < y_pocz then -1 else
     if x_pocz > y_kon  then  1 else
                                0;;
-let strict_compare x (y_pocz,y_kon) =
-  if x>y_kon 
-    then 1
-  else if x<y_pocz
-    then -1
-  else 0;;
 
 
 (* Sprawdza jak wygląda przecięcie x y *)
@@ -34,10 +28,10 @@ let intersection (x_pocz,x_kon) (y_pocz,y_kon) =
       then -1
     else 1;;
 
-(* Type set- krotka int*int *)
+(* Type set- krotka int*int  i liczba elementów mniejszych od min(przechowywany_przedział) *)
 type set =
   | Empty
-  | Node of set * (int*int) *  set * int 
+  | Node of set * (int*int) *  set * int * int
 
 type t =
   {
@@ -47,11 +41,16 @@ type t =
 
 (* nie zmienione *)
 let height = function
-  | Node(_, _, _, h) -> h
+  | Node(_, _, _, h,_) -> h
+  | Empty -> 0
+
+(* Zwraca ilośc mniejszych elementów od k przy wywoływaniu make, *)
+let rec get_lower = function
+  | Node(_, value, r, _,lw) -> (snd value - fst value + 1 +  lw) + (get_lower r)
   | Empty -> 0
 
 (* nie zmienione *)
-let make l k r = Node (l, k, r, max (height l) (height r) + 1)
+let make l k r = Node (l, k, r, max (height l) (height r) + 1,get_lower l)
 
 (* nie zmienione *)
 let bal l k r =
@@ -59,37 +58,46 @@ let bal l k r =
   let hr = height r in
   if hl > hr + 2 then
     match l with
-    | Node (ll, lk, lr, _) ->
+    | Node (ll, lk, lr, _,_) ->
         if height ll >= height lr then make ll lk (make lr k r)
         else
           (match lr with
-          | Node (lrl, lrk, lrr, _) ->
-              make (make ll lk lrl) lrk (make lrr k r)
+          | Node (lrl, lrk, lrr, _,_) ->
+              make (make ll lk lrl) lrk (make lrr k r) 
           | Empty -> assert false)
     | Empty -> assert false
   else if hr > hl + 2 then
     match r with
-    | Node (rl, rk, rr, _) ->
+    | Node (rl, rk, rr, _,_) ->
         if height rr >= height rl then make (make l k rl) rk rr
         else
           (match rl with
-          | Node (rll, rlk, rlr, _) ->
+          | Node (rll, rlk, rlr, _,_) ->
               make (make l k rll) rlk (make rlr rk rr)
           | Empty -> assert false)
     | Empty -> assert false
-  else Node (l, k, r, max hl hr + 1)
+  else Node (l, k, r, max hl hr + 1,get_lower l)
 
 (* nie zmienione *)
 let rec min_elt = function
-  | Node (Empty, k, _, _) -> k
-  | Node (l, _, _, _) -> min_elt l
+  | Node (Empty, k, _, _,_) -> k
+  | Node (l, _, _, _,_) -> min_elt l
   | Empty -> raise Not_found
 
 (* nie zmienione *)
-let rec remove_min_elt = function
-  | Node (Empty, _, r, _) -> r
-  | Node (l, k, r, _) -> bal (remove_min_elt l) k r
-  | Empty -> invalid_arg "PSet.remove_min_elt"
+let remove_min_elt set_ = 
+  let rec pom = function
+  | Node (Empty, k, r, _,_) -> (r,snd k - fst k + 1)
+  | Node (l, k, r, h,lw1) -> (
+    let (l2,min_val) = pom l in
+    match l2 with
+    | Node (l3, k2, r2, h2, lw2)  -> (bal (Node(l3,k2,r2,h2,lw2-min_val)) k r,min_val)
+    | Empty -> (bal Empty k r,min_val) 
+    (* | Empty -> (Node((Empty, k, r, h,lw1 - min_val)),min_val) *)
+    )
+  | Empty -> invalid_arg "ISet.remove_min_elt"
+
+  in (fst (pom set_));;
 
 (* nie zmienione *)
 let merge t1 t2 =
@@ -116,7 +124,7 @@ let is_empty x =
 (* ZŁOŻONOŚĆ: log n - wyszukanie w poprawnym drzewie avl *)
 let mem_przedzial_zawierajacy x set = 
   let rec loop = function
-    | Node (l, k, r, _) ->
+    | Node (l, k, r, _,_) ->
         let c = cmp_przedzialy x k in
         if c = 0 
             then k 
@@ -128,7 +136,7 @@ let mem_przedzial_zawierajacy x set =
 (* funkcja sprawdzająca, czy set jest poprawnym drzewem AVL, w tym przypadku lheight +-2 = rheight *)
 let is_valid x = 
   match x with
-  | Node(l, k, r, h) ->
+  | Node(l, k, r, h,_) ->
     let left_height = height l in
     let right_height = height r in
     abs (left_height - right_height) < 3
@@ -147,46 +155,29 @@ let rec napraw x =
         then x 
     else
     match x with
-    | Node(l,k,r,h) -> napraw (bal l k r)
+    | Node(l,k,r,h,_) -> napraw (bal l k r)
     | Empty -> Empty;;
 
 
-
-(* Funkcja wywoływana przez join  gdy wiadomo, że zdodawany przedział pokrywa się z conajwyżej jednym w drzewie *)
-(* Czyli podczas liczenia split, lub łącząc drzewa w add_one po split *)
-
-(* Złożoność - log n - dodawanie elementu do poprawnego drzewa avl *)
-let rec add_one_SPECIAL cmp x = function
-  | Node (l, k, r, h) ->
-      let c = cmp x k in
-      if c = 0 then Node (l, x, r, h)
-      else if c < 0 then
-        let nl = add_one_SPECIAL cmp x l in
-        bal nl k r
-      else
-        let nr = add_one_SPECIAL cmp x r in
-        bal l k nr
-  | Empty -> Node (Empty, x, Empty, 1)
-
-(* Oryginalny join, zmienione tylko dodawanie *)
-(* Złożoność - log n - tak jak oryginalny join, add_one_SPECIAL też log n *)
+(* Oryginalny join, zamienione tylko add_one na bal puste 1-element drzewo*)
+(* Złożoność - log n - tak jak oryginalny join + log n na bal *)
 let rec join cmp l v r =
   match (l, r) with
-    (Empty, _) -> add_one_SPECIAL cmp v r
-  | (_, Empty) -> add_one_SPECIAL cmp v l
-  | (Node(ll, lv, lr, lh), Node(rl, rv, rr, rh)) ->
+  | (Empty, _) -> bal Empty v r 
+  | (_, Empty) -> bal l v Empty
+  | (Node(ll, lv, lr, lh,_), Node(rl, rv, rr, rh,_)) ->
       if lh > rh + 2 then bal ll lv (join cmp lr v r) else
       if rh > lh + 2 then bal (join cmp l v rl) rv rr else
       make l v r
 
 
 (* oryginalny split, tu używany jako funkcja pomocnicza do mojego split *)
-let split1 x { cmp = cmp; set = set } =
+let split_original x { cmp = cmp; set = set } =
   let x = (x,x) in
   let rec loop x = function
       Empty ->
         (Empty, false, Empty)
-    | Node (l, v, r, _) ->
+    | Node (l, v, r,_,_) ->
         let c = cmp x v in
         if c = 0 then (l, true, r)
         else if c < 0 then
@@ -206,7 +197,7 @@ let split_just_lower x { cmp = cmp; set = set } =
   let rec loop x = function
       Empty ->
         (Empty, false, Empty)
-    | Node (l, v, r, _) ->
+    | Node (l, v, r,_,_) ->
         let c = cmp x v in
         if c = 0 then (l, true, r)
         else if c < 0 then
@@ -217,6 +208,7 @@ let split_just_lower x { cmp = cmp; set = set } =
   let setl, _, _ = loop x set in
   { cmp = cmp; set = setl }
 
+
 (* Split zwracający tylko poddrzewo zlożone z większych wartości niż x, wykonuje przez to mniej operacji *)
 (* bo nie łączy mniejszych poddrzew *)
 (* Złożoność: stała razy log n *)
@@ -225,7 +217,7 @@ let split_jush_higher x { cmp = cmp; set = set } =
   let rec loop x = function
       Empty ->
         (Empty, false, Empty)
-    | Node (l, v, r, _) ->
+    | Node (l, v, r,_,_) ->
         let c = cmp x v in
         if c = 0 then (l, true, r)
         else if c < 0 then
@@ -238,13 +230,15 @@ let split_jush_higher x { cmp = cmp; set = set } =
 
 
 (* DODAWANIE *)
-(* Dla add [a,b] do set wywołujemy split1 od a i split b od a żeby dostać same większe i same mniejsze*)
+(* Dla add [a,b] do set wywołujemy split_original od a i split b od a żeby dostać same większe i same mniejsze*)
 (* łączymy je wstawiając [a,b] w środek i naprawiając drzewo funkcją napraw *)
 (* ZŁOŻONOŚĆ -  split w czasie stała razy log n + log n na naprawe*)
 let add_one cmp x set = 
     match set with
-    | Node(l, k, r, h) ->
+    | Node(l, k, r, h,_) ->
     (
+
+        (* if-y zapewniające działanie dla max_int, min_int *)
         let (pocz_x,kon_x) = x in
         let pocz_x_temp = 
           if pocz_x = min_int
@@ -256,6 +250,7 @@ let add_one cmp x set =
             then max_int - 1
           else kon_x
         in
+        (* --- *)
 
         let dolny = mem_przedzial_zawierajacy (pocz_x_temp-1,pocz_x_temp-1) set in
         let gorny = mem_przedzial_zawierajacy (kon_x_temp+1,kon_x_temp+1) set in
@@ -278,16 +273,16 @@ let add_one cmp x set =
 
         napraw nowe
     )
-    | Empty -> Node (Empty, x, Empty, 1);;
+    | Empty -> Node (Empty, x, Empty, 1,0);;
 
 let add x { cmp = cmp; set = set } =
   { cmp = cmp; set = add_one cmp x set }
 
 
 (* oryginalny split dodający prawe i lewe dopełnienie [a,x-1] i [x+1,b] ,jeśli x \in [a,b] i a<=x && b>=x *)
-(* ZłOŻONOŚĆ: stała razy log n na split i log n na add_one_special *)
+(* ZłOŻONOŚĆ: stała razy log n na split i log n na add *)
 let split x { cmp = cmp; set = set } = 
-  let l, pres, r = split1 x { cmp = cmp; set = set } in
+  let l, pres, r = split_original x { cmp = cmp; set = set } in
   if pres = false
     then l, pres, r
   else
@@ -297,21 +292,21 @@ let split x { cmp = cmp; set = set } =
       if dolny_pocz = 1 && dolny_kon = -1
         then l.set
       else
-        add_one_SPECIAL cmp (dolny_pocz,x-1) l.set in
+        add_one cmp (dolny_pocz,x-1) l.set in
     let r = 
       if gorny_pocz = 1 && gorny_kon = -1
         then r.set
       else
-      add_one_SPECIAL cmp (x+1,gorny_kon) r.set in
+      add_one cmp (x+1,gorny_kon) r.set in
     { cmp = cmp; set = l } , pres, { cmp = cmp; set = r } ;;
 
 
 (* Wywołuje split i ewentualnie dodaje depełnienia przedziałów w których był x ale nie usuwaliśmy całych *)
-(* ZłOŻONOŚĆ: stała razy log n na split i log n na add_one_special *)
+(* ZłOŻONOŚĆ: stała razy log n na split i log n na add *)
 let remove x { cmp = cmp; set = set } =
     let wyn = 
     match set with
-    | Node (l, k, r, _) ->(
+    | Node (l, k, r,_,_) ->(
         let (pocz_x,kon_x) = x in
         let (dolny_pocz,temp1) = mem_przedzial_zawierajacy (pocz_x,pocz_x) set in
         let (temp2,gorny_kon) = mem_przedzial_zawierajacy (kon_x,kon_x) set in
@@ -323,20 +318,16 @@ let remove x { cmp = cmp; set = set } =
 
         let same_mniejsze =
         if pocz_x - 1 >= dolny_pocz && (dolny_pocz!= 1 || temp1 != -1) then
-            add_one_SPECIAL cmp (dolny_pocz,pocz_x-1) same_mniejsze.set
+            add_one cmp (dolny_pocz,pocz_x-1) same_mniejsze.set
           else
           same_mniejsze.set in
         let same_wieksze = 
           if kon_x + 1 <= gorny_kon &&  (temp2 != 1 || gorny_kon != -1) then
-            add_one_SPECIAL cmp (kon_x+1,gorny_kon) same_wieksze.set
+            add_one cmp (kon_x+1,gorny_kon) same_wieksze.set
           else
           same_wieksze.set in
-        if same_mniejsze =Empty then
-        if  same_wieksze =Empty then Empty
-        else
-          merge same_mniejsze same_wieksze
-        else
-          merge same_mniejsze same_wieksze
+
+        merge same_mniejsze same_wieksze
     )
     | Empty -> Empty
     in
@@ -346,7 +337,7 @@ let remove x { cmp = cmp; set = set } =
 let mem x { cmp = cmp; set = set } =
   let x = (x,x) in
   let rec loop = function
-    | Node (l, k, r, _) ->
+    | Node (l, k, r,_,_) ->
         let c = cmp x k in
         c = 0 || loop (if c < 0 then l else r)
     | Empty -> false in
@@ -358,14 +349,14 @@ let mem x { cmp = cmp; set = set } =
 let iter f { set = set } =
   let rec loop = function
     | Empty -> ()
-    | Node (l, k, r, _) -> loop l; f k; loop r in
+    | Node (l, k, r,_,_) -> loop l; f k; loop r in
   loop set
 
 (* nie zmienione *)
 let fold f { cmp = cmp; set = set } acc =
   let rec loop acc = function
     | Empty -> acc
-    | Node (l, k, r, _) ->
+    | Node (l, k, r,_,_) ->
           loop (f k (loop acc l)) r in
   loop acc set
 
@@ -373,48 +364,43 @@ let fold f { cmp = cmp; set = set } acc =
 let elements { set = set } = 
   let rec loop acc = function
       Empty -> acc
-    | Node(l, k, r, _) -> loop (k :: loop acc r) l in
-  loop [] set
+    | Node(l, k, r,_,_) -> loop (k :: loop acc r) l in
+  loop [] set;;
 
-(* Fu *)
-let rec count_nodes = function
-  | Empty -> 0
-  | Node(l, k, r, _) ->
-    snd k - fst k + 1 + count_nodes l + count_nodes r;;
 
-let below x { cmp = cmp; set = set } =
-  let x = (x,x) in
-  let rec loop = function
-  | Empty -> 0
-  | Node(l, k, r, _) ->
-    let c = cmp x k in
-      if c = -1
-        then loop l
-      else if c = 0
-        then
-          let wyn_temp = count_nodes l 
-          in
-          if wyn_temp < 0 
-            then wyn_temp
+
+(* Funkcja below *)
+(* Każdy węzeł trzyma informacje o liczbie elementóœ mniejszych od niego - nazwijmy ją lw*)
+(* Wystarczy więc znaleść przedział zawierający x, *)
+(* dodając wszystkie wartości lw + liczbe elementów w przechodzonych przedziałach *)
+(* oraz liczbe elementów z ostatniego przedziały <=x *)
+
+(* ZŁOŻONOŚĆ - log n *)
+(* wyszukujemy tylko przedział z x-em w poprawnym drzewie avl *)
+let below x { cmp = cmp; set = set } = 
+  let rec loop acc set_ = 
+    match set_ with
+    | Node (l, k, r, _,lw) ->
+        let c = cmp_przedzialy (x,x) k in
+        if c = 0 
+            then (acc + lw + x - (fst k) + 1) 
+        else
+          if c < 0
+            then
+              loop acc l 
           else
-          let temp = fst x - fst k
-          in
-            if temp < 0 
-              then max_int
-            else
-              temp + 1 + wyn_temp
-      else
-      let temp = snd k - fst k
-          in
-            if temp < 0 
-              then max_int
-            else
-              temp + 1 + count_nodes l + loop r
-  in
-  let wyn = loop set
-  in
-  if wyn < 0 
-    then max_int
-  else
-    wyn;;
+            loop (acc + lw + (snd k) - (fst k) + 1 ) r
 
+    | Empty -> acc in
+  let wyn = loop 0 set 
+  in
+  (* if-y potrzebne żeby działało dla MAX_INT *)
+  if wyn < 0 
+    then
+      max_int
+    else
+      if wyn=0 && x=max_int && set != Empty
+        then 
+          max_int
+      else
+        wyn;;

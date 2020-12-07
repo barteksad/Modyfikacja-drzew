@@ -139,7 +139,7 @@ if info then print_endline "Test 4";;
 test a (max_int - 10000000, max_int - 1000000) 2 100000;;
 if info then print_endline "Test 5";;
 
-remove (min_int, max_int) a;;
+(* remove (min_int, max_int) a;;
 if info then print_endline "Starting add";;
 for i = 0 to 10000 do
   (fun _ -> ()) (add (min_int + i, max_int - i) a);
@@ -148,12 +148,12 @@ done;;
 if info then print_endline "Starting remove";;
 for i = 0 to 10000 do
   (fun _ -> ()) (remove (min_int + i, max_int - i) a)
-done;;
-
+done;; *)
+(* 
 if info then print_endline "Starting split";;
 for i = 0 to 10000 do
   (fun _ -> ()) (split (min_int + i) a)
-done;;
+done;; *)
 
 if info then print_endline "Starting below";;
 for i = 0 to 10000 do

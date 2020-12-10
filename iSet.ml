@@ -1,7 +1,9 @@
 (* ------------------------------------------------------------ *)
-(* AUTOR : BARTEK SADLEJ*)
+(* AUTOR : BARTEK SADLEJ *)
+(* CODE_REVIEW : MARYSIA ŚMIGIELSKA *)
 (* ------------------------------------------------------------ *)
 
+(* każde odwołanie do n w opisywanych złożonościach odnosi się do n-liczba elementów w drzewie (przedziałów) *)
 
 
 (* FNKCJA PORÓWNUJĄCA PRZEDZIAŁY NIE DOKŁADNIE*)
@@ -44,9 +46,14 @@ let height = function
   | Node(_, _, _, h,_) -> h
   | Empty -> 0
 
-(* Zwraca ilośc mniejszych elementów od k przy wywoływaniu make, *)
+(* Zwraca ilośc mniejszych elementów od k przy wywoływaniu make *)
 let rec get_lower = function
-  | Node(_, value, r, _,lw) -> (snd value - fst value + 1 +  lw) + (get_lower r)
+  | Node(_, value, r, _,lw) ->
+      let g = (snd value - fst value + 1 +  lw) + (get_lower r)
+        in if g <= 0
+          then max_int
+        else 
+          g
   | Empty -> 0
 
 (* nie zmienione *)
@@ -84,7 +91,8 @@ let rec min_elt = function
   | Node (l, _, _, _,_) -> min_elt l
   | Empty -> raise Not_found
 
-(* nie zmienione *)
+(* Usuwa minimalny element i aktualizuje liczbe przechowywanych elementów w poddrzewach w każdym węźle *)
+(* ZŁOŻONOŚĆ: log n - wyszukujemy dany element i wracamy tą samą ścierzką *)
 let remove_min_elt set_ = 
   let rec pom = function
   | Node (Empty, k, r, _,_) -> (r,snd k - fst k + 1)
@@ -93,13 +101,13 @@ let remove_min_elt set_ =
     match l2 with
     | Node (l3, k2, r2, h2, lw2)  -> (bal (Node(l3,k2,r2,h2,lw2-min_val)) k r,min_val)
     | Empty -> (bal Empty k r,min_val) 
-    (* | Empty -> (Node((Empty, k, r, h,lw1 - min_val)),min_val) *)
     )
   | Empty -> invalid_arg "ISet.remove_min_elt"
 
   in (fst (pom set_));;
 
 (* nie zmienione *)
+(* warunek na wejściu, wszystkie przedziały w t1 < przedziałów t2 *)
 let merge t1 t2 =
   match t1, t2 with
   | Empty, _ -> t2
@@ -116,11 +124,11 @@ let empty = { cmp = cmp_przedzialy; set = Empty }
 
 (* nie zmienione *)
 let is_empty x = 
-  x.set = Empty
+  x.set = Empty;;
+
 
 (* ten sam kod co mem, tylko zamiast true/false zwracamy konkretny element lub (1,-1) jeśli nie znaleziono*)
-(* bierze tylko szukay element i set *)(* ZŁOŻONOŚĆ: log n - najgorszy przypadek- wysokość jednego drzewa = 1*)
-
+(* bierze tylko szukay element i set *)
 (* ZŁOŻONOŚĆ: log n - wyszukanie w poprawnym drzewie avl *)
 let mem_przedzial_zawierajacy x set = 
   let rec loop = function
@@ -134,6 +142,7 @@ let mem_przedzial_zawierajacy x set =
   loop set
 
 (* funkcja sprawdzająca, czy set jest poprawnym drzewem AVL, w tym przypadku lheight +-2 = rheight *)
+(* ZŁOŻONOŚĆ : stała - sprawdzamy tylko wartość w height w l oraz r *)
 let is_valid x = 
   match x with
   | Node(l, k, r, h,_) ->
@@ -149,7 +158,7 @@ let is_valid x =
 (* poprawia różnice wysokości pomiędzy prawym i lewym poddrzewem o 1 *)
 
 (* ZŁOŻONOŚĆ: log n - najgorszy przypadek- wysokość jednego drzewa = 1, drugiego log n, *)
-(* wywołuje ball (log n) -2 razy, a ball działa w czasie stałym*)
+(* wywołuje ball max((|log (l.height) - log(r.height)|)-2,0) razy, a ball działa w czasie stałym*)
 let rec napraw x = 
     if is_valid x 
         then x 
@@ -160,7 +169,8 @@ let rec napraw x =
 
 
 (* Oryginalny join, zamienione tylko add_one na bal puste 1-element drzewo*)
-(* Złożoność - log n - tak jak oryginalny join + log n na bal *)
+(* warunek na wejściu, wszystkie przedziały w l < przedziałów r, v pomiędzy  *)
+(* Złożoność - log n - tak jak oryginalny join + bal *)
 let rec join cmp l v r =
   match (l, r) with
   | (Empty, _) -> bal Empty v r 
@@ -191,7 +201,7 @@ let split_original x { cmp = cmp; set = set } =
 
 (* Split zwracający tylko poddrzewo zlożone z mniejszych wartości niż x, wykonuje przez to mniej operacji *)
 (* bo nie łączy większych poddrzew *)
-(* Złożoność: stała razy log n *)
+(* Złożoność: O(log n) *)
 let split_just_lower x { cmp = cmp; set = set } =
   let x = (x,x) in
   let rec loop x = function
@@ -211,8 +221,8 @@ let split_just_lower x { cmp = cmp; set = set } =
 
 (* Split zwracający tylko poddrzewo zlożone z większych wartości niż x, wykonuje przez to mniej operacji *)
 (* bo nie łączy mniejszych poddrzew *)
-(* Złożoność: stała razy log n *)
-let split_jush_higher x { cmp = cmp; set = set } =
+(* Złożoność: O(log n) *)
+let split_just_higher x { cmp = cmp; set = set } =
   let x = (x,x) in
   let rec loop x = function
       Empty ->
@@ -230,9 +240,9 @@ let split_jush_higher x { cmp = cmp; set = set } =
 
 
 (* DODAWANIE *)
-(* Dla add [a,b] do set wywołujemy split_original od a i split b od a żeby dostać same większe i same mniejsze*)
+(* Dla add [a,b] do set wywołujemy Wywołuje split_just_higher & split_just_lower dostając wszystkie przedziały ściśle mniejsze i większe od x*)
 (* łączymy je wstawiając [a,b] w środek i naprawiając drzewo funkcją napraw *)
-(* ZŁOŻONOŚĆ -  split w czasie stała razy log n + log n na naprawe*)
+(* ZŁOŻONOŚĆ -  split w czasie O(log n) + log n na naprawe*)
 let add_one cmp x set = 
     match set with
     | Node(l, k, r, h,_) ->
@@ -264,7 +274,7 @@ let add_one cmp x set =
         in
        
         let same_mniejsze= split_just_lower (pocz_x_temp-1) { cmp = cmp_przedzialy; set = set } in
-        let same_wieksze  = split_jush_higher (kon_x_temp+1) { cmp = cmp_przedzialy; set = set }
+        let same_wieksze  = split_just_higher (kon_x_temp+1) { cmp = cmp_przedzialy; set = set }
         in
 
 
@@ -279,8 +289,9 @@ let add x { cmp = cmp; set = set } =
   { cmp = cmp; set = add_one cmp x set }
 
 
-(* oryginalny split dodający prawe i lewe dopełnienie [a,x-1] i [x+1,b] ,jeśli x \in [a,b] i a<=x && b>=x *)
-(* ZłOŻONOŚĆ: stała razy log n na split i log n na add *)
+(* split odpowiadający specyfikacji iSet.mli *)
+(* nowy split dodający prawe i lewe dopełnienie  [a,x-1] i [x+1,b] ,jeśli x \in [a,b] i a<=x && b>=x, do zwracanych drzew *)
+(* ZłOŻONOŚĆ: O(log n) na split i O(log n) na add *)
 let split x { cmp = cmp; set = set } = 
   let l, pres, r = split_original x { cmp = cmp; set = set } in
   if pres = false
@@ -301,8 +312,9 @@ let split x { cmp = cmp; set = set } =
     { cmp = cmp; set = l } , pres, { cmp = cmp; set = r } ;;
 
 
-(* Wywołuje split i ewentualnie dodaje depełnienia przedziałów w których był x ale nie usuwaliśmy całych *)
-(* ZłOŻONOŚĆ: stała razy log n na split i log n na add *)
+(* Wywołuje split_just_higher & lower dostając wszystkie przedziały ściśle mniejsze i większe od x *)
+(* i ewentualnie dodaje depełnienia przedziałów w których był x ale nie usuwaliśmy całych *)
+(* ZłOŻONOŚĆ: O(log n) na split i O(log n) na add *)
 let remove x { cmp = cmp; set = set } =
     let wyn = 
     match set with
@@ -312,7 +324,7 @@ let remove x { cmp = cmp; set = set } =
         let (temp2,gorny_kon) = mem_przedzial_zawierajacy (kon_x,kon_x) set in
 
         let same_mniejsze= split_just_lower (pocz_x) { cmp = cmp_przedzialy; set = set } in
-        let same_wieksze  = split_jush_higher (kon_x) { cmp = cmp_przedzialy; set = set }
+        let same_wieksze  = split_just_higher (kon_x) { cmp = cmp_przedzialy; set = set }
         in
 
 
@@ -343,7 +355,6 @@ let mem x { cmp = cmp; set = set } =
     | Empty -> false in
   loop set
 
-(* zwraca przedzial [a,b], jeżeli x \in [a,b], lub  Brak  *)
 
 (* nie zmienione *)
 let iter f { set = set } =
@@ -370,7 +381,7 @@ let elements { set = set } =
 
 
 (* Funkcja below *)
-(* Każdy węzeł trzyma informacje o liczbie elementóœ mniejszych od niego - nazwijmy ją lw*)
+(* Każdy węzeł trzyma informacje o liczbie elementóœ mniejszych od niego- nazwijmy ją lw*)
 (* Wystarczy więc znaleść przedział zawierający x, *)
 (* dodając wszystkie wartości lw + liczbe elementów w przechodzonych przedziałach *)
 (* oraz liczbe elementów z ostatniego przedziały <=x *)
@@ -394,13 +405,19 @@ let below x { cmp = cmp; set = set } =
     | Empty -> acc in
   let wyn = loop 0 set 
   in
+
   (* if-y potrzebne żeby działało dla MAX_INT *)
-  if wyn < 0 
-    then
-      max_int
-    else
-      if wyn=0 && x=max_int && set != Empty
-        then 
-          max_int
-      else
-        wyn;;
+  if wyn > 0
+    then wyn
+  else if wyn < 0
+    then max_int
+  else 
+      try 
+        if fst (min_elt set) <= x
+          then max_int
+        else 0
+      with
+      Not_found -> 0
+      
+        
+

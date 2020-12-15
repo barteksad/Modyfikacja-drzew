@@ -211,9 +211,9 @@ let split_just_lower x { cmp = cmp; set = set } =
         let c = cmp x v in
         if c = 0 then (l, true, r)
         else if c < 0 then
-          let (ll, pres, rl) = loop x l in (ll, pres, Empty)
+          let (ll, pres, _) = loop x l in (ll, pres, Empty)
         else
-          let (lr, pres, rr) = loop x r in (join cmp l v lr, pres, rr)
+          let (lr, pres, _) = loop x r in (join cmp l v lr, pres, Empty)
   in
   let setl, _, _ = loop x set in
   { cmp = cmp; set = setl }
@@ -231,9 +231,9 @@ let split_just_higher x { cmp = cmp; set = set } =
         let c = cmp x v in
         if c = 0 then (l, true, r)
         else if c < 0 then
-          let (ll, pres, rl) = loop x l in (ll, pres, join cmp rl v r)
+          let (_, pres, rl) = loop x l in (Empty, pres, join cmp rl v r)
         else
-          let (lr, pres, rr) = loop x r in (Empty, pres, rr)
+          let (_, pres, rr) = loop x r in (Empty, pres, rr)
   in
   let _, _, setr = loop x set in
   { cmp = cmp; set = setr }
@@ -339,7 +339,7 @@ let remove x { cmp = cmp; set = set } =
           else
           same_wieksze.set in
 
-        merge same_mniejsze same_wieksze
+        napraw (merge same_mniejsze same_wieksze)
     )
     | Empty -> Empty
     in
